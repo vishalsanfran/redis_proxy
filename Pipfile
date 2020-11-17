@@ -1,0 +1,4 @@
+[packages]
+"pytest"            = "*"
+"requests"          = "*"
+"python-dotenv"     = "*"
