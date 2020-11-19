@@ -15,7 +15,10 @@ pool = redis.ConnectionPool(
 )
 lru = LRU(int(os.environ.get('CAPACITY')), int(os.environ.get('EXPIRY')))
 log = logging.getLogger("redis-proxy")
-lock = threading.RLock()
+
+get_lock = threading.RLock()
+set_lock = threading.RLock()
+semaphore = threading.Semaphore(int(os.environ.get('MAX_REQ')))
 
 REDIS_CONN_RETRIES = 5
 OFFSET = 10
@@ -31,42 +34,44 @@ def index():
 
 @app.route('/get')
 def get():
-    cnt = REDIS_CONN_RETRIES
-    while True:
-        try:
-            return _get(request)
-        except redis.exceptions.ConnectionError as ex:
-            if cnt == 0:
-                raise ex
-            cnt -= 1
-            time.sleep(1.0)
+    with semaphore:
+        cnt = REDIS_CONN_RETRIES
+        while True:
+            try:
+                return _get(request)
+            except redis.exceptions.ConnectionError as ex:
+                if cnt == 0:
+                    raise ex
+                cnt -= 1
+                time.sleep(1.0)
 
 def _get(request):
     key = request.args.get('key')
     if key is None:
         return app.make_response(("{} not found".format(key), 404))
-    with lock:
-        try:
+
+    val = None
+    try:
+        with get_lock:
             val = lru.get(key)
-            code = 200
-        except KeyError:
-            log.warn("{} not found in LRU".format(key))
+        code = 200
+    except KeyError:
+        log.warn("{} not found in LRU".format(key))
+    if val is None:
+        with set_lock:
             val = redis.Redis(connection_pool=pool).get(key)
-            code = 201
-        if val is None:
-            resp = app.make_response(("{} not found".format(key), 404))
-        else:
-            if code == 201:
+            if val is not None:
+                log.warn("{} set in LRU".format(key))
                 lru.set(key, val)
-            resp = app.make_response((val, code))
-    return resp
+        code = 404 if val is None else 201
+    msg = "{} not found".format(key) if code == 404 else val
+    return app.make_response((msg, code))
 
 @app.route('/set')
 def set():
     key = request.args.get('key', None)
     val = request.args.get('val', None)
-    cache = redis.Redis(connection_pool=pool)
-    cache.set(key, val)
+    redis.Redis(connection_pool=pool).set(key, val)
     return "{}:{}".format(key, val)
 
 @app.route('/del')
@@ -76,6 +81,5 @@ def delete():
         lru.delete(key)
     except KeyError:
         log.warn("{} not found in LRU. Nothing to delete".format(key))
-    cache = redis.Redis(connection_pool=pool)
-    cache.delete(key)
+    redis.Redis(connection_pool=pool).delete(key)
     return "{}".format(key)

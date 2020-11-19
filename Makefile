@@ -16,14 +16,13 @@ stop:
 	$(COMPOSE) down --remove-orphans
 
 package:
-	pip install pipenv
+	command -v pipenv || pip install pipenv
 	pipenv install
 
-#test: package restart
 test_only:
 	-$(ACTIVATE) pytest test/
 
-test: restart test_only stop
+test: package restart test_only stop
 
 shell: restart
 	$(COMPOSE) exec web sh

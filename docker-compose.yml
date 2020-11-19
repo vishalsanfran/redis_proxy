@@ -14,5 +14,6 @@ services:
       - REDIS_PORT
       - FLASK_ENV
       - MAX_CONN
+      - MAX_REQ
   redis:
     image: "redis:alpine"

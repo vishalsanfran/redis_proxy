@@ -52,3 +52,24 @@ For example, To run the web server/ tests on a different port
 or
 
 ```FLASK_RUN_PORT=8000 make test```
+
+Requirements Implemented and Time Spent
+------------
+HTTP service + Single backing Redis instance: 1 hours
+
+Global expiry: 1 hours
+
+Cached get + LRU eviction + Fixed key size: 1.5 hours
+
+Sequential + Concurrent concurrent processing + : 1.5 hour, having difficulty implementing 
+a reliable unit tests
+
+Configuration: 1 hours
+
+Tests: 1.5 hours
+
+Needed
+-------
+docker-compose >= 1.25 
+
+
