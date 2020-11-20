@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import time
 from lru import SLEEP_TIME
 load_dotenv('config/env.test')
-FIX1 = 'test/fixtures/person1.json'
+FIX1 = 'fixtures/person1.json'
 BASE_URL = "http://localhost:{}".format(os.environ['FLASK_RUN_PORT'])
 
 

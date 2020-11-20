@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  web_resp:
+    build:
+      context: .
+      dockerfile: Dockerfile.resp
+    ports:
+      - "${RESP_PORT}:${RESP_PORT}"
+    volumes:
+      - .:/code
+    environment:
+      - FLASK_RUN_PORT
+      - CAPACITY
+      - EXPIRY
+      - REDIS_HOST
+      - REDIS_PORT
+      - FLASK_ENV
+      - MAX_CONN
+      - MAX_REQ
+      - RESP_PORT
+  redis:
+    image: "redis:alpine"
